@@ -16,7 +16,7 @@ interface ActivityDetailsProps {
 
 export const getServerSideProps: GetServerSideProps<
   ActivityDetailsProps
-> = async ({ params }) => {
+> = async ({ params, req }) => {
   if (!params?.id || Array.isArray(params.id)) return { notFound: true };
   const response = await graphqlClient.query<
     GetActivityQuery,
@@ -24,12 +24,14 @@ export const getServerSideProps: GetServerSideProps<
   >({
     query: GetActivity,
     variables: { id: params.id },
+    context: { headers: { Cookie: req.headers.cookie } },
   });
   return { props: { activity: response.data.getActivity } };
 };
 
 export default function ActivityDetails({ activity }: ActivityDetailsProps) {
   const router = useRouter();
+
   return (
     <>
       <Head>
@@ -39,7 +41,7 @@ export default function ActivityDetails({ activity }: ActivityDetailsProps) {
       <Grid>
         <Grid.Col span={7}>
           <Image
-            src="https://source.unsplash.com/random/?city"
+            src="https://dummyimage.com/640x4:3"
             radius="md"
             alt="random image of city"
             width="100%"

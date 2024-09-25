@@ -2,7 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SignUpInput } from 'src/auth/types';
-import { User } from './schema/user.schema';
+import { User } from './user.schema';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -19,7 +20,6 @@ export class UserService {
     return user;
   }
 
-  // ! TODO: fix type
   async findByEmail(email: string): Promise<User | null> {
     return this.userModel.findOne({ email: email }).exec();
   }
@@ -32,8 +32,13 @@ export class UserService {
     return user;
   }
 
-  async createUser(data: SignUpInput): Promise<User> {
-    const user = new this.userModel(data);
+  async createUser(
+    data: SignUpInput & {
+      role?: User['role'];
+    },
+  ): Promise<User> {
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const user = new this.userModel({ ...data, password: hashedPassword });
     return user.save();
   }
 
@@ -48,5 +53,25 @@ export class UserService {
 
   async countDocuments(): Promise<number> {
     return this.userModel.countDocuments().exec();
+  }
+
+  async setDebugMode({
+    userId,
+    enabled,
+  }: {
+    userId: string;
+    enabled: boolean;
+  }): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        debugModeEnabled: enabled,
+      },
+      { new: true },
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 }

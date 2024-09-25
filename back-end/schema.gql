@@ -2,12 +2,13 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type ActivityDto {
+type Activity {
   city: String!
+  createdAt: DateTime
   description: String!
-  id: String!
+  id: ID!
   name: String!
-  owner: UserDto!
+  owner: User!
   price: Int!
 }
 
@@ -18,21 +19,26 @@ input CreateActivityInput {
   price: Int!
 }
 
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
 type Mutation {
-  createActivity(createActivityInput: CreateActivityInput!): ActivityDto!
+  createActivity(createActivityInput: CreateActivityInput!): Activity!
   login(signInInput: SignInInput!): SignInDto!
   logout: Boolean!
-  register(signUpInput: SignUpInput!): UserDto!
+  register(signUpInput: SignUpInput!): User!
 }
 
 type Query {
-  getActivities: [ActivityDto!]!
-  getActivitiesByCity(activity: String, city: String!, price: Int): [ActivityDto!]!
-  getActivitiesByUser: [ActivityDto!]!
-  getActivity(id: String!): ActivityDto!
+  getActivities: [Activity!]!
+  getActivitiesByCity(activity: String, city: String!, price: Int): [Activity!]!
+  getActivitiesByUser: [Activity!]!
+  getActivity(id: String!): Activity!
   getCities: [String!]!
-  getLatestActivities: [ActivityDto!]!
-  getMe: UserDto!
+  getLatestActivities: [Activity!]!
+  getMe: User!
 }
 
 type SignInDto {
@@ -51,9 +57,10 @@ input SignUpInput {
   password: String!
 }
 
-type UserDto {
+type User {
   email: String!
   firstName: String!
-  id: String!
+  id: ID!
   lastName: String!
+  password: String!
 }
