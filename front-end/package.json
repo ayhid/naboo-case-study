@@ -5,11 +5,14 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
+    "clean:artifacts": "node ./scripts/clean-paths.js .next coverage",
+    "clean:deps": "node ./scripts/clean-paths.js node_modules package-lock.json",
+    "clean:all": "npm run clean:artifacts && npm run clean:deps",
     "start": "next start -p 3001",
     "check": "tsc --noEmit",
     "lint": "next lint",
     "test": "vitest",
-    "generate-types": "cp ../back-end/schema.gql ./src/graphql/schema.gql && graphql-codegen"
+    "generate-types": "sh ./scripts/generate-types.sh"
   },
   "dependencies": {
     "@apollo/client": "^3.8.8",
