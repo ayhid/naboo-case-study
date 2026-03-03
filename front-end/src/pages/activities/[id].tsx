@@ -1,10 +1,11 @@
-import { PageTitle } from "@/components";
+import { FavoriteButton, PageTitle } from "@/components";
 import { graphqlClient } from "@/graphql/apollo";
 import {
   GetActivityQuery,
   GetActivityQueryVariables,
 } from "@/graphql/generated/types";
 import GetActivity from "@/graphql/queries/activity/getActivity";
+import { useAuth, useFavorites } from "@/hooks";
 import { Badge, Flex, Grid, Group, Image, Text } from "@mantine/core";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -31,6 +32,8 @@ export const getServerSideProps: GetServerSideProps<
 
 export default function ActivityDetails({ activity }: ActivityDetailsProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const { favoriteIds, isFavoriteToggling, toggleFavorite } = useFavorites();
 
   return (
     <>
@@ -50,13 +53,23 @@ export default function ActivityDetails({ activity }: ActivityDetailsProps) {
         </Grid.Col>
         <Grid.Col span={5}>
           <Flex direction="column" gap="md">
-            <Group mt="md" mb="xs">
-              <Badge color="pink" variant="light">
-                {activity.city}
-              </Badge>
-              <Badge color="yellow" variant="light">
-                {`${activity.price}€/j`}
-              </Badge>
+            <Group mt="md" mb="xs" position="apart">
+              <Group>
+                <Badge color="pink" variant="light">
+                  {activity.city}
+                </Badge>
+                <Badge color="yellow" variant="light">
+                  {`${activity.price}€/j`}
+                </Badge>
+              </Group>
+              {user && (
+                <FavoriteButton
+                  isFavorite={favoriteIds.has(activity.id)}
+                  disabled={isFavoriteToggling(activity.id)}
+                  loading={isFavoriteToggling(activity.id)}
+                  onClick={() => toggleFavorite(activity.id)}
+                />
+              )}
             </Group>
             <Text size="sm">{activity.description}</Text>
             <Text size="sm" color="dimmed">

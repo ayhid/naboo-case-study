@@ -5,13 +5,14 @@ import {
   GetActivitiesByCityQueryVariables,
 } from "@/graphql/generated/types";
 import GetActivitiesByCity from "@/graphql/queries/activity/getActivitiesByCity";
-import { useDebounced } from "@/hooks";
-import { Divider, Flex, Grid } from "@mantine/core";
+import { useDebounced, useViewMode } from "@/hooks";
+import { useActivityViewStyles } from "@/utils";
+import { Box, Flex, Grid, SegmentedControl } from "@mantine/core";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface CityDetailsProps {
   activities: GetActivitiesByCityQuery["getActivitiesByCity"];
@@ -50,6 +51,7 @@ export default function ActivityDetails({
   activities,
   city,
 }: CityDetailsProps) {
+  const { classes, cx } = useActivityViewStyles();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -62,6 +64,10 @@ export default function ActivityDetails({
     searchParams?.get("price") ? Number(searchParams.get("price")) : undefined
   );
   const debouncedSearchPrice = useDebounced(searchPrice, 300);
+  const { viewMode, setViewMode } = useViewMode({
+    storageKey: "activities-view:productivity",
+    defaultMode: "list",
+  });
 
   useEffect(() => {
     const searchParams = new URLSearchParams();
@@ -100,13 +106,32 @@ export default function ActivityDetails({
         </Grid.Col>
         <Grid.Col span={8}>
           <Flex direction="column" gap="lg">
+            <Flex justify="flex-end">
+              <SegmentedControl
+                aria-label="Mode d'affichage des activités"
+                value={viewMode}
+                onChange={(value: "grid" | "list") => setViewMode(value)}
+                data={[
+                  { label: "Liste", value: "list" },
+                  { label: "Grille", value: "grid" },
+                ]}
+              />
+            </Flex>
             {activities.length > 0 ? (
-              activities.map((activity, idx) => (
-                <Fragment key={activity.id}>
-                  <ActivityListItem activity={activity} />
-                  {idx < activities.length - 1 && <Divider my="sm" />}
-                </Fragment>
-              ))
+              <Box
+                component="ul"
+                aria-label="Liste des activités filtrées"
+                className={cx(classes.activitiesView, {
+                  [classes.gridMode]: viewMode === "grid",
+                  [classes.listMode]: viewMode === "list",
+                })}
+              >
+                {activities.map((activity) => (
+                  <Box component="li" key={activity.id}>
+                    <ActivityListItem activity={activity} />
+                  </Box>
+                ))}
+              </Box>
             ) : (
               <EmptyData />
             )}

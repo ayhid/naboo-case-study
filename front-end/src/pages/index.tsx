@@ -1,10 +1,12 @@
 import { Activity, PageTitle } from "@/components";
 import { graphqlClient } from "@/graphql/apollo";
+import { useAuth, useFavorites } from "@/hooks";
 import { useGlobalStyles } from "@/utils";
-import { Button, Flex, Grid, Text } from "@mantine/core";
+import { Alert, Button, Flex, Grid, Loader, Text } from "@mantine/core";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import { IconAlertCircle } from "@tabler/icons-react";
 import {
   GetLatestActivitiesQuery,
   GetLatestActivitiesQueryVariables,
@@ -28,6 +30,14 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
 
 export default function Home({ activities }: HomeProps) {
   const { classes } = useGlobalStyles();
+  const { user } = useAuth();
+  const {
+    favoriteIds,
+    isFavoritesLoading,
+    favoritesError,
+    isFavoriteToggling,
+    toggleFavorite,
+  } = useFavorites();
 
   return (
     <>
@@ -70,9 +80,26 @@ export default function Home({ activities }: HomeProps) {
                 </Button>
               </Link>
             </Flex>
+            {user && isFavoritesLoading && <Loader size="sm" mb="md" />}
+            {user && favoritesError && (
+              <Alert
+                icon={<IconAlertCircle size="1rem" />}
+                title="Erreur"
+                color="red"
+                mb="md"
+              >
+                Impossible de charger vos favoris.
+              </Alert>
+            )}
             <Grid>
               {activities.map((activity) => (
-                <Activity activity={activity} key={activity.id} />
+                <Activity
+                  activity={activity}
+                  key={activity.id}
+                  isFavorite={favoriteIds.has(activity.id)}
+                  isFavoriteLoading={isFavoriteToggling(activity.id)}
+                  onToggleFavorite={user ? toggleFavorite : undefined}
+                />
               ))}
             </Grid>
           </>
