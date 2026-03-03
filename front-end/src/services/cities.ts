@@ -1,4 +1,4 @@
-import { City } from "@/utils";
+import type { City } from "@/utils/types";
 import { AxiosResponse } from "axios";
 import { axiosInstance } from "./axios";
 
