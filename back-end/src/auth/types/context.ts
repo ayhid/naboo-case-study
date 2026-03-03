@@ -1,6 +1,7 @@
 import { PayloadDto } from './jwtPayload.dto';
+import { User } from 'src/user/user.schema';
 
 export interface ContextWithJWTPayload {
-  jwtPayload: PayloadDto;
-  // Add other properties you expect in the context here
+  jwtPayload: PayloadDto | null;
+  currentUserRole?: User['role'];
 }

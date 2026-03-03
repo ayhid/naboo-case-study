@@ -1,4 +1,5 @@
 import { User } from 'src/user/user.schema';
+import { USER_ROLES } from 'src/user/user.constants';
 
 export const user = {
   email: 'user1@test.fr',
@@ -12,5 +13,5 @@ export const admin = {
   password: 'admin',
   firstName: 'Admin',
   lastName: 'Boss',
-  role: 'admin' as User['role'],
+  role: USER_ROLES.ADMIN as User['role'],
 };

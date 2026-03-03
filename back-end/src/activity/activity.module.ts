@@ -4,6 +4,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { ActivityService } from './activity.service';
 import { Activity, ActivitySchema } from './activity.schema';
 import { ActivityResolver } from './activity.resolver';
+import { FavoriteModule } from 'src/favorite/favorite.module';
 import { UserModule } from 'src/user/user.module';
 
 @Module({
@@ -12,6 +13,7 @@ import { UserModule } from 'src/user/user.module';
       { name: Activity.name, schema: ActivitySchema },
     ]),
     AuthModule,
+    FavoriteModule,
     UserModule,
   ],
   exports: [ActivityService],

@@ -5,6 +5,7 @@ const ActivityFragment = gql`
   fragment Activity on Activity {
     id
     city
+    createdAt
     description
     name
     price
