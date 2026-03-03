@@ -16,7 +16,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "start:db": "sh ./scripts/db-runtime.sh up",
+    "start:db": "sh ./scripts/db-runtime.sh up -d",
     "stop:db": "sh ./scripts/db-runtime.sh stop",
     "stop:db:rm": "sh ./scripts/db-runtime.sh down",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -57,7 +57,7 @@
     "@types/cookie-parser": "^1.4.3",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.2",
-    "@types/node": "^20.3.1",
+    "@types/node": "20.11.30",
     "@types/supertest": "^2.0.12",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^5.59.11",
@@ -74,7 +74,7 @@
     "ts-loader": "^9.4.3",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.1.3"
+    "typescript": "5.2.2"
   },
   "jest": {
     "moduleFileExtensions": [
