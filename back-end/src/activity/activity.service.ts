@@ -33,7 +33,24 @@ export class ActivityService {
   }
 
   async findByIds(ids: string[]): Promise<Activity[]> {
-    return this.activityModel.find({ _id: { $in: ids } }).exec();
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const activities = await this.activityModel.find({ _id: { $in: ids } }).exec();
+    const activityById = new Map(
+      activities.map((activity) => [activity._id.toString(), activity]),
+    );
+
+    const orderedActivities: Activity[] = [];
+    ids.forEach((id) => {
+      const activity = activityById.get(id);
+      if (activity) {
+        orderedActivities.push(activity as Activity);
+      }
+    });
+
+    return orderedActivities;
   }
 
   async create(userId: string, data: CreateActivityInput): Promise<Activity> {
