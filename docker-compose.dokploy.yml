@@ -1,0 +1,41 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-naboo_case_study}
+    volumes:
+      - mongodb-data:/data/db
+
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongodb:27017/naboo_case_study}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_TIME: ${JWT_EXPIRATION_TIME:-604800}
+      FRONTEND_URL: ${FRONTEND_URL}
+      FRONTEND_DOMAIN: ${FRONTEND_DOMAIN}
+    expose:
+      - "3000"
+
+  frontend:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GRAPHQL_URL: ${NEXT_PUBLIC_GRAPHQL_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_GRAPHQL_URL: ${NEXT_PUBLIC_GRAPHQL_URL}
+    expose:
+      - "3001"
+
+volumes:
+  mongodb-data:
