@@ -66,6 +66,7 @@ flowchart TB
       GQL[GraphQL Module + Apollo Driver]
       AM[Auth Module]
       UM[User Module]
+      FM[Favorite Module]
       MM[Me Module]
       ATM[Activity Module]
       SM[Seed Module]
@@ -80,6 +81,7 @@ flowchart TB
     AC -->|/graphql| GQL
     GQL --> AM
     GQL --> UM
+    GQL --> FM
     GQL --> MM
     GQL --> ATM
     AM --> UM
@@ -96,7 +98,7 @@ flowchart TB
     classDef external fill:#F3F4F6,stroke:#374151,color:#111827,stroke-width:1.5px;
     classDef security fill:#FEE2E2,stroke:#991B1B,color:#450A0A,stroke-width:1.5px;
     class UI,AP,AC,UIR app;
-    class GQL,AM,UM,MM,ATM,SM backend;
+    class GQL,AM,UM,FM,MM,ATM,SM backend;
     class DB data;
     class EXT external;
     style Browser fill:#FCFCFD,stroke:#9CA3AF,stroke-width:1.5px,color:#111827;
@@ -120,6 +122,7 @@ flowchart TB
     subgraph Services["Application Services"]
       AS[AuthService]
       US[UserService]
+      FS[FavoriteService]
       ACS[ActivityService]
       SS[SeedService]
     end
@@ -127,6 +130,7 @@ flowchart TB
     subgraph Models["Mongoose Models"]
       UMOD[User Model]
       AMOD[Activity Model]
+      FMOD[Favorite Model]
     end
 
     JWT[JwtService]
@@ -141,6 +145,7 @@ flowchart TB
     AS --> US
     AS --> JWT
     ACR --> ACS
+    ACR --> FS
     ACR --> US
     MR --> US
     SS --> US
@@ -148,8 +153,10 @@ flowchart TB
 
     US --> UMOD
     ACS --> AMOD
+    FS --> FMOD
     UMOD --> DB
     AMOD --> DB
+    FMOD --> DB
 
     classDef actor fill:#FFF4CC,stroke:#8A6D1A,color:#1F2937,stroke-width:1.5px;
     classDef app fill:#E6F0FF,stroke:#1E3A8A,color:#0F172A,stroke-width:1.5px;
@@ -158,8 +165,8 @@ flowchart TB
     classDef external fill:#F3F4F6,stroke:#374151,color:#111827,stroke-width:1.5px;
     classDef security fill:#FEE2E2,stroke:#991B1B,color:#450A0A,stroke-width:1.5px;
     class AR,MR,ACR,CTX backend;
-    class AS,US,ACS,SS backend;
-    class UMOD,AMOD,DB data;
+    class AS,US,FS,ACS,SS backend;
+    class UMOD,AMOD,FMOD,DB data;
     class AG security;
     class JWT external;
     style GraphQL fill:#FCFCFD,stroke:#9CA3AF,stroke-width:1.5px,color:#111827;
@@ -174,10 +181,12 @@ flowchart TB
 - `AuthResolver`: login/register/logout GraphQL entry points and cookie set/clear.
 - `MeResolver`: authenticated current-user query.
 - `ActivityResolver`: activity query and mutation entry points.
+- `ActivityResolver`: activity + favorites query/mutation entry points, plus admin-only `createdAt` field gating.
 - `AuthGuard`: blocks GraphQL resolvers when JWT payload is missing.
 - `AuthService`: credential validation, token generation, token persistence.
 - `UserService`: user CRUD/query and password hashing path during user creation.
 - `ActivityService`: activity query/create/filter behavior.
+- `FavoriteService`: favorite list management with stable ordering and reorder validation.
 - `SeedService`: initial data bootstrap.
 
 ## 4. Frontend Component View (C4 Level 3)

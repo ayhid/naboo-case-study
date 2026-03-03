@@ -127,3 +127,40 @@ sequenceDiagram
     SSR-->>FE: props.activities
     FE-->>U: Re-render filtered list
 ```
+
+## 5. Favorite Toggle and Reorder Flow
+
+```mermaid
+%%{init: {'themeVariables': {'mainBkg': '#FFFFFF', 'primaryColor': '#FFFFFF', 'secondaryColor': '#FFFFFF', 'tertiaryColor': '#FFFFFF', 'textColor': '#F8FAFC', 'lineColor': '#E5E7EB', 'actorLineColor': '#E5E7EB', 'labelBoxBkgColor': '#0F172A', 'labelBoxBorderColor': '#334155', 'actorBkg': '#E6F0FF', 'actorBorder': '#1E3A8A', 'actorTextColor': '#F8FAFC', 'participantBkg': '#FFFFFF', 'participantBorder': '#9CA3AF', 'participantTextColor': '#0F172A', 'signalColor': '#F59E0B', 'signalTextColor': '#F8FAFC', 'sequenceNumberColor': '#0F172A', 'activationBorderColor': '#F59E0B'}}}%%
+sequenceDiagram
+    autonumber
+    actor U as User (Browser)
+    participant FE as Frontend (useFavorites)
+    participant GQL as Backend GraphQL
+    participant FR as FavoriteService
+    participant ACT as ActivityService
+    participant DB as MongoDB
+
+    U->>FE: Click favorite button on activity card
+    FE->>GQL: addFavoriteActivity(activityId) / removeFavoriteActivity(activityId)
+    GQL->>GQL: Verify JWT + AuthGuard
+    alt add
+      GQL->>ACT: findOne(activityId)
+      GQL->>FR: addFavoriteActivity(userId, activityId)
+    else remove
+      GQL->>FR: removeFavoriteActivity(userId, activityId)
+    end
+    FR->>DB: write favorite rows (+ position maintenance)
+    GQL->>FR: getFavoriteActivityIds(userId)
+    FR->>DB: read favorites ordered by position
+    GQL->>ACT: findByIds(favoriteActivityIds)
+    ACT->>DB: read activities
+    GQL-->>FE: updated favorite activity list
+    FE-->>U: UI updates with optimistic state
+
+    U->>FE: Drag/drop favorite order
+    FE->>GQL: reorderFavoriteActivities(activityIds)
+    GQL->>FR: reorderFavoriteActivities(userId, activityIds)
+    FR->>DB: two-phase bulk position update
+    GQL-->>FE: reordered list
+```

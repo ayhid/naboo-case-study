@@ -7,7 +7,7 @@ This repository contains two apps:
 - `back-end`: a NestJS GraphQL API backed by MongoDB (Mongoose)
 - `front-end`: a Next.js (Pages Router) app using Apollo Client and Mantine UI
 
-Current user-facing capabilities include authentication (register, login, logout, current user), activity discovery, filtering by city/activity/price, authenticated activity creation, and profile views with user-specific activities.
+Current user-facing capabilities include authentication (register, login, logout, current user), activity discovery, filtering by city/activity/price, authenticated activity creation, favorites management (add/remove/reorder), and profile views with user-specific activities.
 
 ## 2. Repository Structure
 
@@ -17,6 +17,7 @@ Current user-facing capabilities include authentication (register, login, logout
 │   ├── src/
 │   │   ├── activity/
 │   │   ├── auth/
+│   │   ├── favorite/
 │   │   ├── me/
 │   │   ├── seed/
 │   │   ├── user/
@@ -78,6 +79,8 @@ GraphQL is configured asynchronously in `AppModule` with:
 erDiagram
     direction LR
     USER ||--o{ ACTIVITY : owns
+    USER ||--o{ FAVORITE : has
+    ACTIVITY ||--o{ FAVORITE : referenced_by
 
     USER {
         ObjectId _id
@@ -98,10 +101,18 @@ erDiagram
         ObjectId owner
         datetime createdAt
     }
+
+    FAVORITE {
+        ObjectId _id
+        ObjectId userId
+        ObjectId activityId
+        number position
+    }
 ```
 
 Relationship description:
 Each `USER` can own multiple `ACTIVITY` entries, and every `ACTIVITY` belongs to exactly one `USER` through the `owner` reference.
+Favorites are represented by a separate `FAVORITE` collection keyed by (`userId`, `activityId`) with an explicit `position` for stable ordering.
 
 This diagram matches:
 
@@ -128,6 +139,14 @@ This diagram matches:
 - Reads activity sets (all/latest/by user/by city/by id)
 - Creates activities for authenticated users
 - Returns distinct cities
+- Preserves incoming order when fetching by IDs (`findByIds`)
+
+### FavoriteService (`back-end/src/favorite/favorite.service.ts`)
+
+- Returns a user favorite list ordered by `position`
+- Adds favorites idempotently and preserves order
+- Removes favorites and reindexes subsequent positions
+- Reorders favorites with payload validation and two-phase updates to avoid unique index collisions
 
 ### 4.5 GraphQL Resolvers and Operations
 
@@ -159,11 +178,19 @@ Queries:
 Mutation:
 
 - `createActivity(createActivityInput)` (guarded)
+- `addFavoriteActivity(activityId)` (guarded)
+- `removeFavoriteActivity(activityId)` (guarded)
+- `reorderFavoriteActivities(activityIds)` (guarded)
+
+Additional query:
+
+- `getFavoriteActivities()` (guarded)
 
 Resolve fields:
 
 - `id` is derived from Mongo `_id`
 - `owner` is resolved through the Mongoose relation
+- `createdAt` is conditionally exposed only for admin users
 
 ### 4.6 Auth and Security Model (Current State)
 
@@ -215,7 +242,7 @@ Route config is centralized in `front-end/src/routes.ts` and filtered by auth st
 
 ### 5.3 Data Layer (Apollo + GraphQL)
 
-The Apollo singleton lives at `front-end/src/graphql/apollo.ts`. The GraphQL endpoint is currently hardcoded to `http://localhost:3000/graphql`, with cookie-based auth enabled through `credentials: "include"`.
+The Apollo singleton lives at `front-end/src/graphql/apollo.ts`. The GraphQL endpoint is configurable via `NEXT_PUBLIC_GRAPHQL_URL` (fallbacks to `GRAPHQL_URL` and then `http://localhost:3000/graphql`), with cookie-based auth enabled through `credentials: "include"`.
 
 Operations are organized by intent:
 
@@ -256,7 +283,7 @@ Layout/navigation components:
 - `Topbar`
 - `PageTitle`
 
-Utility and supporting modules include theme/global styles under `front-end/src/utils/*`, a debounced search hook at `front-end/src/hooks/useDebounced.ts`, and a snackbar notification context.
+Utility and supporting modules include theme/global styles under `front-end/src/utils/*`, a debounced search hook (`useDebounced`), favorites/state hooks (`useFavorites`, `useViewMode`), and a snackbar notification context.
 
 ### 5.6 External API Integration
 
@@ -342,13 +369,18 @@ Both apps include `check` and `lint` scripts.
 
 Backend environment variables currently used:
 
+- `MONGO_PORT`
+- `MONGO_DB_NAME`
 - `MONGO_URI`
 - `FRONTEND_URL`
 - `FRONTEND_DOMAIN`
 - `JWT_SECRET`
 - `JWT_EXPIRATION_TIME`
 
-Frontend GraphQL and Axios backend URLs are currently hardcoded in source files.
+Frontend environment variables currently used:
+
+- `NEXT_PUBLIC_GRAPHQL_URL` (preferred)
+- `GRAPHQL_URL` (fallback)
 
 ## 9. Best-Practice Patterns Implemented in Code
 
@@ -356,7 +388,7 @@ This section outlines engineering patterns already present in the codebase that 
 
 ### 9.1 Backend Patterns
 
-- Modular domain boundaries with explicit Nest modules (`AuthModule`, `UserModule`, `ActivityModule`, `MeModule`, `SeedModule`) reduce coupling and keep ownership clear.
+- Modular domain boundaries with explicit Nest modules (`AuthModule`, `UserModule`, `ActivityModule`, `FavoriteModule`, `MeModule`, `SeedModule`) reduce coupling and keep ownership clear.
 - Centralized platform concerns in bootstrap/root modules: global validation pipe, CORS with credentials, cookie parsing, config-driven initialization.
 - Layered GraphQL architecture (resolver -> service -> persistence model) keeps transport concerns separated from business logic.
 - Guard-based authorization (`AuthGuard`) enforces protection at resolver entry points with a consistent mechanism.
