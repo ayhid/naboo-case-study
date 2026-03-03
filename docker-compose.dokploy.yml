@@ -25,8 +25,8 @@ services:
 
   frontend:
     build:
-      context: ./front-end
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: front-end/Dockerfile
       args:
         NEXT_PUBLIC_GRAPHQL_URL: ${NEXT_PUBLIC_GRAPHQL_URL}
     restart: unless-stopped

@@ -1,0 +1,21 @@
+# VCS
+.git
+.gitignore
+
+# Local tooling and secrets
+.codex/
+.env
+.env.*
+
+# Dependency/build artifacts
+**/node_modules
+**/.next
+**/dist
+**/coverage
+
+# Logs
+**/npm-debug.log*
+**/*.log
+
+# Unneeded local directories
+_bmad-output/
