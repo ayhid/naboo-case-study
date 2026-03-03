@@ -1,4 +1,4 @@
-import { Activity, PageTitle } from "@/components";
+import { Activity, HasAuth, PageTitle } from "@/components";
 import { graphqlClient } from "@/graphql/apollo";
 import { useAuth, useFavorites } from "@/hooks";
 import { useGlobalStyles } from "@/utils";
@@ -17,12 +17,14 @@ interface HomeProps {
   activities: GetLatestActivitiesQuery["getLatestActivities"];
 }
 
-export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
+export const getServerSideProps: GetServerSideProps<HomeProps> = async ({ req }) => {
   const response = await graphqlClient.query<
     GetLatestActivitiesQuery,
     GetLatestActivitiesQueryVariables
   >({
     query: GetLatestActivities,
+    fetchPolicy: "no-cache",
+    context: { headers: { Cookie: req.headers.cookie } },
   });
 
   return { props: { activities: response.data.getLatestActivities } };
@@ -80,17 +82,19 @@ export default function Home({ activities }: HomeProps) {
                 </Button>
               </Link>
             </Flex>
-            {user && isFavoritesLoading && <Loader size="sm" mb="md" />}
-            {user && favoritesError && (
-              <Alert
-                icon={<IconAlertCircle size="1rem" />}
-                title="Erreur"
-                color="red"
-                mb="md"
-              >
-                Impossible de charger vos favoris.
-              </Alert>
-            )}
+            <HasAuth>
+              {isFavoritesLoading && <Loader size="sm" mb="md" />}
+              {favoritesError && (
+                <Alert
+                  icon={<IconAlertCircle size="1rem" />}
+                  title="Erreur"
+                  color="red"
+                  mb="md"
+                >
+                  Impossible de charger vos favoris.
+                </Alert>
+              )}
+            </HasAuth>
             <Grid>
               {activities.map((activity) => (
                 <Activity

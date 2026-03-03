@@ -7,6 +7,7 @@ export * from "./EmptyData";
 export * from "./FavoriteButton";
 export * from "./Filters";
 export * from "./Form";
+export * from "./HasAuth";
 export * from "./HasRole";
 export * from "./PageTitle";
 export * from "./Topbar";

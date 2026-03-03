@@ -67,3 +67,10 @@ npm run test:cov
 # e2e tests
 npm run test:e2e
 ```
+
+## Seeded Users
+
+The seed process creates these default users:
+
+- Regular user: `user1@test.fr` / `user1`
+- Admin user: `admin@test.fr` / `admin`

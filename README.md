@@ -1,5 +1,12 @@
 # Naboo Case Study
 
+## Table of Contents
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Run Locally](#run-locally)
+- [Documentation](#documentation)
+- [Test Credentials](#test-credentials)
+
 ## Overview
 This repository contains a full-stack case study with:
 
@@ -42,11 +49,18 @@ npm run generate-types
 ```
 
 ## Documentation
-- `docs/c4-architecture-view.md`
-- `docs/sequence-diagrams.md`
-- `docs/codebase-documentation.md`
-- `docs/architecture-roadmap.md`
+- [C4 Architecture View](docs/c4-architecture-view.md)
+- [Sequence Diagrams](docs/sequence-diagrams.md)
+- [Codebase Documentation](docs/codebase-documentation.md)
+- [Architecture Roadmap](docs/architecture-roadmap.md)
+- [Dokploy Deployment Guide](DEPLOY_DOKPLOY.md)
+- [Backend README](back-end/README.md)
+- [Frontend README](front-end/README.md)
 
 ## Test Credentials
-- Email: `user1@test.fr`
-- Password: `user1`
+- Regular user:
+  - Email: `user1@test.fr`
+  - Password: `user1`
+- Admin user:
+  - Email: `admin@test.fr`
+  - Password: `admin`

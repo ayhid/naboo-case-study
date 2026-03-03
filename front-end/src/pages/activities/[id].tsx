@@ -1,11 +1,11 @@
-import { FavoriteButton, PageTitle } from "@/components";
+import { FavoriteButton, HasAuth, PageTitle } from "@/components";
 import { graphqlClient } from "@/graphql/apollo";
 import {
   GetActivityQuery,
   GetActivityQueryVariables,
 } from "@/graphql/generated/types";
 import GetActivity from "@/graphql/queries/activity/getActivity";
-import { useAuth, useFavorites } from "@/hooks";
+import { useFavorites } from "@/hooks";
 import { Badge, Flex, Grid, Group, Image, Text } from "@mantine/core";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -24,6 +24,7 @@ export const getServerSideProps: GetServerSideProps<
     GetActivityQueryVariables
   >({
     query: GetActivity,
+    fetchPolicy: "no-cache",
     variables: { id: params.id },
     context: { headers: { Cookie: req.headers.cookie } },
   });
@@ -32,7 +33,6 @@ export const getServerSideProps: GetServerSideProps<
 
 export default function ActivityDetails({ activity }: ActivityDetailsProps) {
   const router = useRouter();
-  const { user } = useAuth();
   const { favoriteIds, isFavoriteToggling, toggleFavorite } = useFavorites();
 
   return (
@@ -62,14 +62,14 @@ export default function ActivityDetails({ activity }: ActivityDetailsProps) {
                   {`${activity.price}€/j`}
                 </Badge>
               </Group>
-              {user && (
+              <HasAuth>
                 <FavoriteButton
                   isFavorite={favoriteIds.has(activity.id)}
                   disabled={isFavoriteToggling(activity.id)}
                   loading={isFavoriteToggling(activity.id)}
                   onClick={() => toggleFavorite(activity.id)}
                 />
-              )}
+              </HasAuth>
             </Group>
             <Text size="sm">{activity.description}</Text>
             <Text size="sm" color="dimmed">

@@ -2,6 +2,7 @@ import {
   ActivityListItem,
   ActivityListItemSkeleton,
   EmptyData,
+  HasAuth,
   PageTitle,
 } from "@/components";
 import { graphqlClient } from "@/graphql/apollo";
@@ -24,12 +25,14 @@ interface DiscoverProps {
 
 export const getServerSideProps: GetServerSideProps<
   DiscoverProps
-> = async () => {
+> = async ({ req }) => {
   const response = await graphqlClient.query<
     GetActivitiesQuery,
     GetActivitiesQueryVariables
   >({
     query: GetActivities,
+    fetchPolicy: "no-cache",
+    context: { headers: { Cookie: req.headers.cookie } },
   });
   return { props: { activities: response.data.getActivities } };
 };
@@ -66,24 +69,26 @@ export default function Discover({ activities }: DiscoverProps) {
               { label: "Grille", value: "grid" },
             ]}
           />
-          {user && (
+          <HasAuth>
             <Link href="/activities/create">
               <Button>Ajouter une activité</Button>
             </Link>
-          )}
+          </HasAuth>
         </Group>
       </Group>
-      {user && isFavoritesLoading && <Loader size="sm" mb="md" />}
-      {user && favoritesError && (
-        <Alert
-          icon={<IconAlertCircle size="1rem" />}
-          title="Erreur"
-          color="red"
-          mb="md"
-        >
-          Impossible de charger vos favoris.
-        </Alert>
-      )}
+      <HasAuth>
+        {isFavoritesLoading && <Loader size="sm" mb="md" />}
+        {favoritesError && (
+          <Alert
+            icon={<IconAlertCircle size="1rem" />}
+            title="Erreur"
+            color="red"
+            mb="md"
+          >
+            Impossible de charger vos favoris.
+          </Alert>
+        )}
+      </HasAuth>
       {activities.length > 0 ? (
         <Box
           component="ul"

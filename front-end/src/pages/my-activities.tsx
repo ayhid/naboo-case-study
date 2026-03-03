@@ -42,6 +42,7 @@ export const getServerSideProps: GetServerSideProps<
     GetUserActivitiesQueryVariables
   >({
     query: GetUserActivities,
+    fetchPolicy: "no-cache",
     context: { headers: { Cookie: req.headers.cookie } },
   });
   return { props: { activities: response.data.getActivitiesByUser } };

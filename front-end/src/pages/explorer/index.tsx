@@ -15,12 +15,14 @@ interface ExplorerProps {
 
 export const getServerSideProps: GetServerSideProps<
   ExplorerProps
-> = async () => {
+> = async ({ req }) => {
   const response = await graphqlClient.query<
     GetCitiesQuery,
     GetCitiesQueryVariables
   >({
     query: GetCities,
+    fetchPolicy: "no-cache",
+    context: { headers: { Cookie: req.headers.cookie } },
   });
   return { props: { cities: response.data.getCities } };
 };

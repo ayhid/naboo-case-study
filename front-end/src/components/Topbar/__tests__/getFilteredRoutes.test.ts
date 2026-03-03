@@ -1,4 +1,5 @@
 import { GetUserQuery } from "@/graphql/generated/types";
+import { USER_ROLES } from "@/constants/role";
 import { checkRouteAccess, getFilteredRoutes } from "../getFilteredRoutes";
 import { Route, SubRoute } from "../types";
 
@@ -14,48 +15,57 @@ const user: GetUserQuery["getMe"] = {
   email: "user1@test.fr",
   firstName: "john",
   lastName: "doe",
+  role: USER_ROLES.USER,
 };
 
-describe("la fonction checkRouteAccess", () => {
+const admin: GetUserQuery["getMe"] = {
+  id: "admin1",
+  email: "admin@test.fr",
+  firstName: "admin",
+  lastName: "boss",
+  role: USER_ROLES.ADMIN,
+};
+
+describe("checkRouteAccess", () => {
   it.each([
     {
       description:
-        "pour une route avec requiredAuth = undefined et user = null => doit retourner true",
+        "returns true for a route with requiredAuth = undefined when user is null",
       route: { requiredAuth: undefined, label: "route1", route: "/route1" },
       hasUser: false,
       result: true,
     },
     {
       description:
-        "pour une route avec requiredAuth = false et user = null => doit retourner true",
+        "returns true for a route with requiredAuth = false when user is null",
       route: { requiredAuth: false, label: "route1", route: "/route1" },
       hasUser: false,
       result: true,
     },
     {
       description:
-        "pour une route avec requiredAuth = true et user = null => doit retourner false",
+        "returns false for a route with requiredAuth = true when user is null",
       route: { requiredAuth: true, label: "route1", route: "/route1" },
       hasUser: false,
       result: false,
     },
     {
       description:
-        "pour une route avec requiredAuth = false et user != null => doit retourner false",
+        "returns false for a route with requiredAuth = false when user is authenticated",
       route: { requiredAuth: false, label: "route1", route: "/route1" },
       hasUser: true,
       result: false,
     },
     {
       description:
-        "pour une route avec requiredAuth = undefined et user != null => doit retourner true",
+        "returns true for a route with requiredAuth = undefined when user is authenticated",
       route: { requiredAuth: undefined, label: "route1", route: "/route1" },
       hasUser: true,
       result: true,
     },
     {
       description:
-        "pour une route avec requiredAuth = true et user != null => doit retourner true",
+        "returns true for a route with requiredAuth = true when user is authenticated",
       route: { requiredAuth: true, label: "route1", route: "/route1" },
       hasUser: true,
       result: true,
@@ -65,7 +75,7 @@ describe("la fonction checkRouteAccess", () => {
   });
 });
 
-describe("la fonction getFilteredRoutes", () => {
+describe("getFilteredRoutes", () => {
   const routes: Route[] = [
     { label: "Route1", route: "/route1" },
     { label: "Route2", route: "/route2", requiredAuth: true },
@@ -86,7 +96,7 @@ describe("la fonction getFilteredRoutes", () => {
       ],
     },
   ];
-  it("doit retourner les bonnes routes si un user est connecté", () => {
+  it("returns the expected routes when a regular user is authenticated", () => {
     const filtereRoutes = getFilteredRoutes(routes, user);
     expect(filtereRoutes).toEqual([
       { label: "Route1", route: "/route1" },
@@ -104,7 +114,25 @@ describe("la fonction getFilteredRoutes", () => {
     ]);
   });
 
-  it("doit retourner les bonnes routes si un n'est pas est connecté", () => {
+  it("returns the expected routes when an admin user is authenticated", () => {
+    const filtereRoutes = getFilteredRoutes(routes, admin);
+    expect(filtereRoutes).toEqual([
+      { label: "Route1", route: "/route1" },
+      { label: "Route2", route: "/route2", requiredAuth: true },
+      {
+        label: "Route4",
+        route: [
+          {
+            label: "Route4.2",
+            link: "/route4.2",
+            requiredAuth: true,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("returns the expected routes when no user is authenticated", () => {
     const filtereRoutes = getFilteredRoutes(routes, null);
     expect(filtereRoutes).toEqual([
       { label: "Route1", route: "/route1" },

@@ -1,13 +1,20 @@
-import { ActivityListItem, EmptyData, Filters, PageTitle } from "@/components";
+import {
+  ActivityListItem,
+  EmptyData,
+  Filters,
+  HasAuth,
+  PageTitle,
+} from "@/components";
 import { graphqlClient } from "@/graphql/apollo";
 import {
   GetActivitiesByCityQuery,
   GetActivitiesByCityQueryVariables,
 } from "@/graphql/generated/types";
 import GetActivitiesByCity from "@/graphql/queries/activity/getActivitiesByCity";
-import { useDebounced, useViewMode } from "@/hooks";
+import { useAuth, useDebounced, useFavorites, useViewMode } from "@/hooks";
 import { useActivityViewStyles } from "@/utils";
-import { Box, Flex, Grid, SegmentedControl } from "@mantine/core";
+import { Alert, Box, Flex, Grid, Loader, SegmentedControl } from "@mantine/core";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useSearchParams } from "next/navigation";
@@ -22,6 +29,7 @@ interface CityDetailsProps {
 export const getServerSideProps: GetServerSideProps<CityDetailsProps> = async ({
   params,
   query,
+  req,
 }) => {
   if (!params?.city || Array.isArray(params.city)) return { notFound: true };
 
@@ -36,6 +44,8 @@ export const getServerSideProps: GetServerSideProps<CityDetailsProps> = async ({
     GetActivitiesByCityQueryVariables
   >({
     query: GetActivitiesByCity,
+    fetchPolicy: "no-cache",
+    context: { headers: { Cookie: req.headers.cookie } },
     variables: {
       city: params.city,
       activity: query.activity || null,
@@ -52,6 +62,14 @@ export default function ActivityDetails({
   city,
 }: CityDetailsProps) {
   const { classes, cx } = useActivityViewStyles();
+  const { user } = useAuth();
+  const {
+    favoriteIds,
+    isFavoritesLoading,
+    favoritesError,
+    isFavoriteToggling,
+    toggleFavorite,
+  } = useFavorites();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -117,6 +135,19 @@ export default function ActivityDetails({
                 ]}
               />
             </Flex>
+            <HasAuth>
+              {isFavoritesLoading && <Loader size="sm" mb="md" />}
+              {favoritesError && (
+                <Alert
+                  icon={<IconAlertCircle size="1rem" />}
+                  title="Erreur"
+                  color="red"
+                  mb="md"
+                >
+                  Impossible de charger vos favoris.
+                </Alert>
+              )}
+            </HasAuth>
             {activities.length > 0 ? (
               <Box
                 component="ul"
@@ -128,7 +159,12 @@ export default function ActivityDetails({
               >
                 {activities.map((activity) => (
                   <Box component="li" key={activity.id}>
-                    <ActivityListItem activity={activity} />
+                    <ActivityListItem
+                      activity={activity}
+                      isFavorite={favoriteIds.has(activity.id)}
+                      isFavoriteLoading={isFavoriteToggling(activity.id)}
+                      onToggleFavorite={user ? toggleFavorite : undefined}
+                    />
                   </Box>
                 ))}
               </Box>
