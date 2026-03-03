@@ -101,3 +101,196 @@ Outcome intent for this quadrant:
 1. Approve immediate execution of all quick wins.
 2. Sponsor the session-model unification decision as a cross-team priority.
 3. Enforce evidence-based approval for high-effort optimization work.
+
+## Monorepo Transformation + Next.js Modernization (App Router)
+
+### Objective
+Transform the current dual-repository layout (`front-end/`, `back-end/`) into a single monorepo operating model, while modernizing the frontend from Next.js Pages Router to App Router and upgrading to the latest stable Next.js baseline (reference target: `16.1.6` as of March 2, 2026).
+
+### Target-State Architecture (Monorepo)
+
+Proposed structure:
+
+```text
+/
+  apps/
+    web/                  # Next.js App Router app (current front-end)
+    api/                  # NestJS API (current back-end)
+  packages/
+    graphql/              # Shared schema, generated types, operations
+    types/                # Shared domain DTO/TS types (non-runtime or runtime-safe)
+    eslint-config/        # Shared lint standards
+    tsconfig/             # Shared TS base configs
+    ui/                   # Optional shared UI primitives (future, only if justified)
+  tooling/
+    scripts/              # Repo automation (bootstrap, checks, codegen orchestration)
+  docker/
+    docker-compose.yml    # Local infra (MongoDB and optional supporting services)
+  .tool-versions
+  turbo.json
+  pnpm-workspace.yaml
+  package.json            # Root workspace scripts
+```
+
+Architecture principles:
+- Keep runtime boundaries explicit: `apps/web` consumes `apps/api` only through API contracts, not direct code imports.
+- Extract only stable shared assets first (GraphQL artifacts, configs, types), then evaluate additional sharing.
+- Preserve independent deployability of `web` and `api` inside the monorepo.
+
+### Tooling Decision and Rationale
+
+| Option | Strengths | Constraints | Recommendation |
+|---|---|---|---|
+| npm workspaces | Native, low adoption overhead, minimal tooling change | Weaker workspace ergonomics and caching model for larger multi-app pipelines | Not preferred for this roadmap |
+| pnpm + Turborepo | Fast installs, strict dependency graph, strong task caching, scalable CI orchestration | Requires initial setup and team enablement | **Recommended** |
+
+Decision:
+- Use `pnpm` workspaces for dependency management and workspace linking.
+- Use `Turborepo` for task graph orchestration (`build`, `test`, `lint`, `check`, codegen) with local/remote caching.
+
+### Explicit App Router Migration Mapping
+
+| Current Pattern | Target Pattern | Notes |
+|---|---|---|
+| `src/pages/_app.tsx` + `src/pages/_document.tsx` | `app/layout.tsx` (+ route segment layouts as needed) | Consolidate providers and global HTML structure into App Router layout model |
+| `next/head` in page components | `metadata` / `generateMetadata` | Move per-route SEO and title concerns to App Router metadata APIs |
+| `getServerSideProps` | Server Components, Route Handlers, and `fetch` cache controls (`force-cache`, `no-store`, `revalidate`) | Replace page-level data hooks with route-level server rendering and explicit caching policy |
+| `next/router` | `next/navigation` (`useRouter`, `usePathname`, `useSearchParams`) | Update client navigation APIs and patterns progressively by route segment |
+
+### Compatibility and Risk Checklist
+
+| Area | Key Risk | Mitigation Action |
+|---|---|---|
+| Next.js + React | Version jump introduces breaking changes in runtime and build behavior | Upgrade in controlled steps with a compatibility branch and route-by-route validation |
+| Mantine 6 integration | Provider/layout integration differences under App Router and SSR/hydration edge cases | Validate official compatibility path; test provider placement in `app/layout.tsx` and critical pages first |
+| Apollo Client SSR usage | Current global client + Pages SSR patterns may conflict with App Router server/client boundaries | Introduce request-scoped patterns where needed and define clear server/client data ownership per route |
+| ESLint stack (`next lint` and custom rules) | Rule behavior changes across Next major versions | Move to shared workspace config and run baseline fix pass before enforcing new gates |
+| TypeScript configs | Divergent per-app settings create drift during migration | Create shared base configs in `packages/tsconfig` with minimal app overrides |
+| GraphQL codegen coupling | Current `cp ../back-end/schema.gql` path is brittle after repo reshaping | Move schema and generated artifacts to `packages/graphql` with workspace-native generation pipeline |
+
+### Incremental Delivery Plan
+
+#### Phase 0: Foundation and Guardrails
+- Phase objective: Establish safe migration controls and baseline metrics before structural change.
+- Key tasks:
+  - Define architecture guardrails (import boundaries, ownership, deployment independence).
+  - Capture baseline CI duration, local setup time, and current production error rates for web/api.
+  - Create migration branch strategy and rollback playbook.
+- Risks:
+  - Incomplete baseline leads to low-confidence decisions later.
+- Rollback strategy:
+  - No production-facing change in this phase; rollback is process-only (revert governance artifacts).
+- Measurable exit criteria:
+  - Baseline metrics approved.
+  - Migration governance checklist adopted.
+
+#### Phase 1: Workspace and Repository Migration
+- Phase objective: Move to monorepo without changing runtime behavior.
+- Key tasks:
+  - Introduce `apps/web`, `apps/api`, root workspace manifests, and root scripts.
+  - Preserve existing app commands via compatibility aliases.
+  - Introduce Turborepo task graph and cache configuration.
+- Risks:
+  - Build/pipeline disruption due to path and script changes.
+- Rollback strategy:
+  - Maintain branch cutpoint and compatibility scripts enabling temporary execution from legacy paths.
+- Measurable exit criteria:
+  - `dev`, `build`, `test`, `lint`, `check` run from repo root.
+  - CI green with no functional regression.
+
+#### Phase 2: Shared Package Extraction
+- Phase objective: Remove fragile cross-app coupling and centralize reusable assets.
+- Key tasks:
+  - Create `packages/graphql`, `packages/types`, `packages/eslint-config`, `packages/tsconfig`.
+  - Replace relative file-copy codegen flow with workspace package dependencies.
+  - Standardize environment contract and validation strategy.
+- Risks:
+  - Incorrect package boundaries can increase coupling instead of reducing it.
+- Rollback strategy:
+  - Feature flag package consumers back to app-local artifacts while keeping package scaffolding intact.
+- Measurable exit criteria:
+  - No `../` cross-app artifact copy dependencies remain.
+  - Shared config adoption across both apps is complete.
+
+#### Phase 3: CI/CD and Caching Modernization
+- Phase objective: Improve delivery speed and consistency under monorepo operations.
+- Key tasks:
+  - Split and optimize pipeline stages by affected scope.
+  - Enable deterministic cache keys and optional remote cache.
+  - Add monorepo-aware quality gates (contract checks, schema consistency checks).
+- Risks:
+  - Cache misconfiguration can hide failures or cause non-deterministic builds.
+- Rollback strategy:
+  - Fall back to non-cached full-run pipeline profiles until cache integrity is validated.
+- Measurable exit criteria:
+  - CI duration reduction target met.
+  - Reproducible pipeline runs across clean and cached executions.
+
+#### Phase 4: Next.js Upgrade to Latest Stable
+- Phase objective: Upgrade framework safely before router paradigm migration.
+- Key tasks:
+  - Upgrade Next.js/React/toolchain to approved target versions.
+  - Resolve lint/type/runtime incompatibilities and deprecations.
+  - Validate critical user journeys and SSR behavior.
+- Risks:
+  - Breaking framework changes affecting hydration, routing, or build tooling.
+- Rollback strategy:
+  - Maintain versioned lockfile snapshot and rollback branch for immediate restore.
+- Measurable exit criteria:
+  - Test and smoke suite stability.
+  - No critical regression in production monitoring after rollout.
+
+#### Phase 5: Pages Router to App Router Migration
+- Phase objective: Migrate routing and rendering model incrementally with low downtime.
+- Key tasks:
+  - Introduce `app/` routes incrementally while decommissioning corresponding `pages/` routes.
+  - Migrate metadata and navigation APIs.
+  - Replace `getServerSideProps` with server component and route handler patterns using explicit caching policies.
+- Risks:
+  - SSR data behavior mismatch and SEO regressions during mixed-mode transition.
+- Rollback strategy:
+  - Route-level rollback by keeping legacy `pages/` equivalents until segment stabilization is complete.
+- Measurable exit criteria:
+  - All targeted routes served from App Router.
+  - SEO metadata parity validated.
+  - Performance and error budgets remain within thresholds.
+
+### Low-Business-Impact DX Improvements (Quick Wins)
+
+| Improvement | Why It Helps DX | Effort | Dependency / Order | Risk | Success Indicator |
+|---|---|---|---|---|---|
+| Unified `.tool-versions` (Node, pnpm, tooling) | Eliminates environment drift across team machines and CI | S | First | Low | Reduced setup/version mismatch incidents |
+| Root workspace scripts (`dev`, `build`, `test`, `lint`, `check`) | Gives one predictable entrypoint for daily workflows | S | After workspace init | Low | Faster onboarding and fewer command errors |
+| Dockerized local MongoDB (`docker-compose`) | Standardizes local data-store setup and removes manual DB bootstrapping | S | Early, parallel to Phase 1 | Low | Lower local setup time and fewer DB boot failures |
+| Single `.env.example` strategy + env validation | Makes required config explicit and fail-fast | S | Early | Low | Fewer runtime config errors |
+| Shared lint/format/typecheck configs | Removes duplicated config and inconsistent quality gates | M | After `packages/*` creation | Low | Stable lint/type results across apps |
+| Pre-commit hooks + commit message linting | Prevents low-quality commits from entering CI | S | After shared configs | Low | Reduced avoidable CI failures |
+| Turborepo local/remote caching policy | Speeds repeat builds/tests and improves dev feedback loops | M | After pipeline split | Medium | CI/runtime duration reduction trend |
+| Standard bootstrap command + onboarding checklist | Makes setup deterministic for new contributors | S | Finalize after first migration pass | Low | Time-to-first-successful-run improvement |
+
+### Decision Gates
+
+Gate 1 (Before Phase 1):
+- Baseline metrics captured and accepted.
+- Ownership defined for web, api, and shared packages.
+
+Gate 2 (Before Phase 2):
+- Root workspace commands stable in CI and local.
+- No unresolved critical regressions from repository migration.
+
+Gate 3 (Before Phase 3):
+- Shared package boundaries approved (what is shared vs app-owned).
+- GraphQL artifact ownership and generation flow approved.
+
+Gate 4 (Before Phase 4):
+- CI cache strategy proven deterministic on repeated runs.
+- Rollback protocol validated in a dry run.
+
+Gate 5 (Before Phase 5):
+- Next.js upgrade complete with zero open P0/P1 issues.
+- App Router migration playbook approved (route sequencing, metadata parity, rollback per route).
+
+Gate 6 (Completion Gate):
+- All targeted routes migrated to App Router.
+- DX quick wins delivered or formally scheduled with owners and dates.
+- Operational metrics meet or exceed pre-migration baseline.

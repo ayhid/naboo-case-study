@@ -350,7 +350,46 @@ Backend environment variables currently used:
 
 Frontend GraphQL and Axios backend URLs are currently hardcoded in source files.
 
-## 9. Risks and Architectural Gaps (Current State)
+## 9. Best-Practice Patterns Implemented in Code
+
+This section outlines engineering patterns already present in the codebase that support maintainability, correctness, and delivery consistency.
+
+### 9.1 Backend Patterns
+
+- Modular domain boundaries with explicit Nest modules (`AuthModule`, `UserModule`, `ActivityModule`, `MeModule`, `SeedModule`) reduce coupling and keep ownership clear.
+- Centralized platform concerns in bootstrap/root modules: global validation pipe, CORS with credentials, cookie parsing, config-driven initialization.
+- Layered GraphQL architecture (resolver -> service -> persistence model) keeps transport concerns separated from business logic.
+- Guard-based authorization (`AuthGuard`) enforces protection at resolver entry points with a consistent mechanism.
+- DTO and input validation using `class-validator` on GraphQL input types establishes fail-fast validation rules at API boundaries.
+- Password handling follows secure primitives (`bcrypt` hashing/comparison), avoiding plain-text credential checks.
+- Async configuration via `forRootAsync` and `ConfigService` supports environment-specific behavior without hardcoding secrets.
+- Backend test coverage includes unit and e2e flows, providing regression protection for core service and auth scenarios.
+
+### 9.2 Frontend Patterns
+
+- Provider composition in `_app.tsx` centralizes cross-cutting concerns (theme, notifications, GraphQL client, auth state) in a single app shell.
+- Routing concerns are separated by intent:
+  - page-level routing in Next.js pages
+  - navigation policy in centralized route config (`routes.ts`)
+  - access enforcement through reusable HOCs (`withAuth`, `withoutAuth`)
+- GraphQL operations are organized by domain and intent (queries, mutations, fragments), with generated TypeScript types for compile-time safety.
+- SSR data fetching is consistently implemented with `getServerSideProps` on data-driven pages, including cookie forwarding for protected server-rendered queries.
+- Custom hooks encapsulate reusable behavior (`useAuth`, `useSnackbar`, `useDebounced`) and keep components focused on rendering.
+- Service-layer wrappers (`services/axios.ts`, `services/cities.ts`) isolate external API call details from UI components.
+- Shared, reusable UI components (`components/*`) and route filtering utilities improve consistency and reduce duplicated logic.
+- Frontend tests (Vitest + Testing Library) cover shared UI and route utility logic as a baseline quality gate.
+
+### 9.3 Cross-Cutting Patterns
+
+- End-to-end GraphQL contract flow is established:
+  - backend schema generation
+  - frontend schema sync/codegen
+  - typed operation consumption in UI/state logic
+- TypeScript-first development on both apps improves refactor confidence and reduces runtime-type defects.
+- Scripted quality commands (`check`, `lint`, `test`) in each app establish repeatable local verification steps.
+- Environment-driven runtime behavior is already used in critical backend concerns (database, CORS origin, JWT secrets/settings).
+
+## 10. Risks and Architectural Gaps (Current State)
 
 > Warning: this section includes active security-relevant gaps in the current implementation.
 
@@ -364,7 +403,7 @@ Architecture and maintainability gaps:
 - The shared Apollo singleton is reused across SSR and client contexts.
 - Frontend code relies heavily on barrel exports (`components/index.ts`, hooks/contexts/services indexes).
 
-## 10. How to Run
+## 11. How to Run
 
 Backend:
 
